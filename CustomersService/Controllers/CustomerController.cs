@@ -19,22 +19,11 @@ namespace CustomersService.Controllers
             _context = context;
         }
 
-        //public ActionResult<Customer> GetCustomers()
-        //{
-        //    var customers = _context.Customers.Include(x=>x.Address).ToList();
-        //    return 
-        //}
-
         [HttpGet]
-        public ActionResult<ResponseModel<IEnumerable<Customer>>> GetCustomers()
+        public ActionResult<ResponseModel<List<Customer>>> GetCustomers()
         {
             var customers = _context.Customers.Include(x => x.Address).ToList();
-            return Ok(new ResponseModel<IEnumerable<Customer>>
-            {
-                Success = true,
-                Message = "",
-                Data = customers
-            });
+            return Ok(new ResponseModel<List<Customer>> { Success = true, Message = "", Data = customers });
         }
 
         [HttpGet("{id}")]
@@ -43,40 +32,28 @@ namespace CustomersService.Controllers
             var customer = _context.Customers.Include(c => c.Address).FirstOrDefault(c => c.Id == id);
             if (customer == null)
             {
-                return NotFound(new ResponseModel<Customer>
-                {
-                    Success = false,
-                    Message = "Customer not found",
-                    Data = null
-                });
+                return NotFound(new ResponseModel<Customer> { Success = false, Message = "Customer not found", Data = new() });
             }
-            return Ok(new ResponseModel<Customer>
-            {
-                Success = true,
-                Message = "",
-                Data = customer
-            });
+            return Ok(new ResponseModel<Customer> { Success = true, Message = "", Data = customer });
         }
 
         [HttpPost]
-        public ActionResult<ResponseModel<Customer>> PostCustomer([FromBody] CustomerDTO customer)
+        public ActionResult<ResponseModel<Customer>> PostCustomer([FromBody] CustomerCreateDTO customer)
         {
             if (!ModelState.IsValid)
             {
-                //var errors = ModelState.Values.SelectMany(v => v.Errors).Select(e => e.ErrorMessage).ToList();
-                return BadRequest(new ResponseModel<Customer>
-                {
-                    Success = false,
-                    Message = "Model is not appropriate",
-                    Data = null
-                });
+                return BadRequest(new ResponseModel<Customer> { Success = false, Message = "Model is not valid", Data = new() });
             }
 
-            //customer.Id = Guid.NewGuid();
+            var addressCheck = _context.Addresses.Where(x => x.Id == customer.AddressId).FirstOrDefault();
+
+            if (addressCheck == null)
+            {
+                return BadRequest(new ResponseModel<Customer> { Success = false, Message = "AddressId is not found in the database", Data = new() });
+            }
 
             Customer addingCustomer = new Customer()
             {
-                Id = customer.Id,
                 Name = customer.Name,
                 Email = customer.Email,
                 AddressId = customer.AddressId,
@@ -86,73 +63,69 @@ namespace CustomersService.Controllers
             _context.Customers.Add(addingCustomer);
             _context.SaveChanges();
 
-            return Ok(new ResponseModel<Customer> { Success = true, Message = "Customer created successfully", Data = null });
+            return Ok(new ResponseModel<Customer> { Success = true, Message = "Customer created successfully", Data = new() });
 
-            //return CreatedAtAction(nameof(GetCustomer), new { id = customer.Id }, new ResponseModel<Customer>
-            //{
-            //    Success = true,
-            //    Message = "Customer created successfully",
-            //    Data = customer
-            //});
         }
 
-        [HttpPut("{id}")]
-        public ActionResult<ResponseModel<Customer>> PutCustomer(Guid id)
+        [HttpPut]
+        public ActionResult<ResponseModel<Customer>> PutCustomer([FromBody] CustomerUpdateDTO customerDto)
         {
-            var customer = _context.Customers.Where(x => x.Id == id).FirstOrDefault();
-            if (customer == null)
-            {
-                return BadRequest(new ResponseModel<Customer> { Success = false, Message = "Customer Not Found", Data = null });
-            }
-
             if (!ModelState.IsValid)
             {
                 return BadRequest(new ResponseModel<Customer>
                 {
                     Success = false,
                     Message = "Model is not valid",
-                    Data = null
+                    Data = new()
                 });
             }
 
-            var existingCustomer = _context.Customers.Where(x=>x.Id == id).FirstOrDefault();
+            var existingCustomer = _context.Customers.Where(x => x.Id == customerDto.Id).FirstOrDefault();
+
             if (existingCustomer == null)
             {
                 return NotFound(new ResponseModel<Customer>
                 {
                     Success = false,
                     Message = "Customer not found",
-                    Data = null
+                    Data = new()
                 });
             }
 
-            existingCustomer.Name = customer.Name;
-            existingCustomer.Email = customer.Email;
-            existingCustomer.AddressId = customer.AddressId;
-            existingCustomer.UpdatedAt = DateTime.UtcNow;
+            var addressCheck = _context.Addresses.Where(x => x.Id == customerDto.AddressId).FirstOrDefault();
 
-            _context.Entry(existingCustomer).State = EntityState.Modified;
+            if (addressCheck == null)
+            {
+                return BadRequest(new ResponseModel<Customer> { Success = false, Message = "AddressId is not found in the database", Data = new() });
+            }
+
+            existingCustomer.Name = customerDto.Name;
+            existingCustomer.Email = customerDto.Email;
+            existingCustomer.AddressId = customerDto.AddressId;
+            existingCustomer.UpdatedAt = DateTime.Now;
+
+            _context.Customers.Update(existingCustomer);
             _context.SaveChanges();
 
             return Ok(new ResponseModel<Customer>
             {
                 Success = true,
                 Message = "Customer updated successfully",
-                Data = existingCustomer
+                Data = new()
             });
         }
 
         [HttpDelete("{id}")]
         public ActionResult<ResponseModel<Customer>> DeleteCustomer(Guid id)
         {
-            var customer = _context.Customers.Find(id);
+            var customer = _context.Customers.Where(x => x.Id == id).FirstOrDefault();
             if (customer == null)
             {
                 return NotFound(new ResponseModel<Customer>
                 {
                     Success = false,
                     Message = "Customer not found",
-                    Data = null
+                    Data = new()
                 });
             }
 
@@ -163,7 +136,7 @@ namespace CustomersService.Controllers
             {
                 Success = true,
                 Message = "Customer deleted successfully",
-                Data = null
+                Data = new()
             });
         }
     }

@@ -1,14 +1,15 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace OrdersService.OrderModels
+namespace CustomersService.DTOs
 {
-    public class Customer
+    public class CustomerUpdateDTO
     {
         public Guid Id { get; set; }
         [Required]
         public string Name { get; set; }
         [Required]
         public string Email { get; set; }
-        public List<Order> Orders { get; set; }
+        [Required]
+        public Guid AddressId { get; set; }
     }
 }
